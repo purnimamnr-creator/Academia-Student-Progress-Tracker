@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Fields: uid, displayName, email, dailyGoalMinutes, streak, lastActiveDate
+    //
+    // Collection: scores
+    // Fields: id, subject, date, score, maxScore, type, notes, uid
+    //
+    // Collection: merits
+    // Fields: id, title, date, description, category, uid
+    //
+    // Collection: goals
+    // Fields: id, title, targetDate, currentValue, targetValue, unit, status, uid
+    //
+    // Collection: sessions
+    // Fields: id, title, start, end, subject, reminderSet, uid
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isTeacher() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
+    function isTeacherOf(studentId) {
+      return isTeacher() && studentId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.studentIds;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isDocTeacherOf() {
+      return isTeacherOf(resource.data.uid);
+    }
+
+    function isRequestOwner() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.uid;
+    }
+
+    function isRequestTeacherOf() {
+      return isTeacherOf(request.resource.data.uid);
+    }
+
+    // Domain Validators
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['teacher', 'student'];
+    }
+
+    function isValidScore(data) {
+      return data.keys().hasAll(['subject', 'date', 'score', 'maxScore', 'uid']) &&
+             data.subject is string && data.subject.size() < 100 &&
+             data.score is number && data.maxScore is number &&
+             (data.uid == request.auth.uid || isTeacherOf(data.uid));
+    }
+
+    function isValidMerit(data) {
+      return data.keys().hasAll(['title', 'date', 'uid']) &&
+             data.title is string && data.title.size() < 200 &&
+             (data.uid == request.auth.uid || isTeacherOf(data.uid));
+    }
+
+    function isValidGoal(data) {
+      return data.keys().hasAll(['title', 'targetDate', 'targetValue', 'uid']) &&
+             data.title is string && data.title.size() < 200 &&
+             (data.uid == request.auth.uid || isTeacherOf(data.uid));
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['title', 'start', 'end', 'uid']) &&
+             data.title is string && data.title.size() < 200 &&
+             (data.uid == request.auth.uid || isTeacherOf(data.uid));
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isTeacherOf(userId) || isTeacher();
+      allow create: if isOwner(userId) || isTeacher();
+      allow update: if (isOwner(userId) || isTeacher()) && isValidUser(request.resource.data);
+    }
+
+    match /scores/{scoreId} {
+      allow read: if isDocOwner() || isDocTeacherOf();
+      allow create: if isRequestOwner() || isRequestTeacherOf();
+      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
+      allow delete: if isDocOwner() || isDocTeacherOf();
+    }
+
+    match /merits/{meritId} {
+      allow read: if isDocOwner() || isDocTeacherOf();
+      allow create: if isRequestOwner() || isRequestTeacherOf();
+      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
+      allow delete: if isDocOwner() || isDocTeacherOf();
+    }
+
+    match /goals/{goalId} {
+      allow read: if isDocOwner() || isDocTeacherOf();
+      allow create: if isRequestOwner() || isRequestTeacherOf();
+      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
+      allow delete: if isDocOwner() || isDocTeacherOf();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isDocOwner() || isDocTeacherOf();
+      allow create: if isRequestOwner() || isRequestTeacherOf();
+      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
+      allow delete: if isDocOwner() || isDocTeacherOf();
+    }
+  }
+}

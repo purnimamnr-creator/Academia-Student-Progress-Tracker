@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user profile information, role, and managed students.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "dailyGoalMinutes": { "type": "number" },
+        "streak": { "type": "number" },
+        "lastActiveDate": { "type": "string" },
+        "role": { "type": "string", "enum": ["teacher", "student"] },
+        "studentIds": { "type": "array", "items": { "type": "string" } },
+        "standard": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "TestScore": {
+      "title": "Test Score",
+      "description": "Records of academic tests and assignments.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subject": { "type": "string" },
+        "date": { "type": "string" },
+        "score": { "type": "number" },
+        "maxScore": { "type": "number" },
+        "type": { "type": "string", "enum": ["test", "assignment", "exam"] },
+        "notes": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["subject", "date", "score", "maxScore", "uid"]
+    },
+    "Merit": {
+      "title": "Merit",
+      "description": "Records of achievements and merits.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["academic", "behavior", "extracurricular"] },
+        "uid": { "type": "string" }
+      },
+      "required": ["title", "date", "uid"]
+    },
+    "AcademicGoal": {
+      "title": "Academic Goal",
+      "description": "Student academic goals.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "targetDate": { "type": "string" },
+        "currentValue": { "type": "number" },
+        "targetValue": { "type": "number" },
+        "unit": { "type": "string" },
+        "status": { "type": "string", "enum": ["in-progress", "completed", "failed"] },
+        "uid": { "type": "string" }
+      },
+      "required": ["title", "targetDate", "targetValue", "uid"]
+    },
+    "StudySession": {
+      "title": "Study Session",
+      "description": "Scheduled study sessions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "start": { "type": "string" },
+        "end": { "type": "string" },
+        "subject": { "type": "string" },
+        "reminderSet": { "type": "boolean" },
+        "uid": { "type": "string" }
+      },
+      "required": ["title", "start", "end", "uid"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile data"
+    },
+    "/scores/{scoreId}": {
+      "schema": "TestScore",
+      "description": "Academic scores"
+    },
+    "/merits/{meritId}": {
+      "schema": "Merit",
+      "description": "Student merits"
+    },
+    "/goals/{goalId}": {
+      "schema": "AcademicGoal",
+      "description": "Academic goals"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "StudySession",
+      "description": "Study sessions"
+    }
+  }
+}
