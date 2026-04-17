@@ -87,12 +87,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: 'teacher',
           studentIds: []
         };
-        setDoc(doc(db, 'users', user.uid), newProfile);
+        setDoc(doc(db, 'users', user.uid), newProfile).catch(e => {
+          console.error("Failed to create profile:", e);
+        });
         setProfile(newProfile);
       }
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+      setLoading(false);
+      try {
+        handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+      } catch (err) {
+        console.error("Auth Diagnostic:", err);
+      }
     });
 
     // 2. Listen for Managed Students (if teacher)
@@ -100,7 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubStudents = onSnapshot(qStudents, (snapshot) => {
       setManagedStudents(snapshot.docs.map(doc => ({ ...doc.data() as UserProfile, uid: doc.id })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'users');
+      try {
+        handleFirestoreError(error, OperationType.LIST, 'users');
+      } catch (err) {
+        console.error("Managed Students Diagnostic:", err);
+      }
     });
 
     return () => {
@@ -123,28 +134,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubScores = onSnapshot(qScores, (snapshot) => {
       setScores(snapshot.docs.map(doc => ({ ...doc.data() as TestScore, id: doc.id })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'scores');
+      try {
+        handleFirestoreError(error, OperationType.GET, 'scores');
+      } catch (err) {
+        console.error("Scores Diagnostic:", err);
+      }
     });
 
     const qMerits = query(collection(db, 'merits'), where('studentId', '==', activeUid), where('uid', '==', user.uid));
     const unsubMerits = onSnapshot(qMerits, (snapshot) => {
       setMerits(snapshot.docs.map(doc => ({ ...doc.data() as Merit, id: doc.id })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'merits');
+      try {
+        handleFirestoreError(error, OperationType.GET, 'merits');
+      } catch (err) {
+        console.error("Merits Diagnostic:", err);
+      }
     });
 
     const qGoals = query(collection(db, 'goals'), where('studentId', '==', activeUid), where('uid', '==', user.uid));
     const unsubGoals = onSnapshot(qGoals, (snapshot) => {
       setGoals(snapshot.docs.map(doc => ({ ...doc.data() as AcademicGoal, id: doc.id })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'goals');
+      try {
+        handleFirestoreError(error, OperationType.GET, 'goals');
+      } catch (err) {
+        console.error("Goals Diagnostic:", err);
+      }
     });
 
     const qSessions = query(collection(db, 'sessions'), where('studentId', '==', activeUid), where('uid', '==', user.uid));
     const unsubSessions = onSnapshot(qSessions, (snapshot) => {
       setSessions(snapshot.docs.map(doc => ({ ...doc.data() as StudySession, id: doc.id })));
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'sessions');
+      try {
+        handleFirestoreError(error, OperationType.GET, 'sessions');
+      } catch (err) {
+        console.error("Sessions Diagnostic:", err);
+      }
     });
 
     return () => {

@@ -30,19 +30,20 @@ service cloud.firestore {
     // User profiles: Each user can only read and write their own data
     // or teachers can manage students they are assigned to
     match /users/{userId} {
-      allow get: if isUserSelf(userId) || (isAuthenticated() && resource.data.teacherUid == request.auth.uid);
-      
-      allow list: if isAuthenticated() && (
-        request.auth.uid == userId || 
-        resource.data.teacherUid == request.auth.uid
+      allow read: if isAuthenticated() && (
+        userId == request.auth.uid || 
+        (resource != null && resource.data.get('teacherUid', '') == request.auth.uid)
       );
       
       allow create: if isAuthenticated() && (
         request.auth.uid == userId || 
-        request.resource.data.teacherUid == request.auth.uid
+        request.resource.data.get('teacherUid', '') == request.auth.uid
       );
       
-      allow update, delete: if isUserSelf(userId) || (isAuthenticated() && resource.data.teacherUid == request.auth.uid);
+      allow update, delete: if isAuthenticated() && (
+        userId == request.auth.uid || 
+        (resource != null && resource.data.get('teacherUid', '') == request.auth.uid)
+      );
     }
 
     // Scores: Only the owner can access their own scores
