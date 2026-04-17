@@ -178,10 +178,10 @@ export function TeacherControls() {
                 >
                   <button 
                     onClick={(e) => handleDeleteClick(e, student.uid, student.displayName)}
-                    className="absolute -top-2 -right-2 bg-rose-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 shadow-sm z-10"
+                    className="absolute -top-2 -right-2 bg-rose-500 text-white p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-rose-600 shadow-lg z-10 scale-110 md:scale-100"
                     title="Remove Student"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     selectedStudentId === student.uid ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'
@@ -207,6 +207,22 @@ export function TeacherControls() {
             )}
           </div>
         </div>
+
+        {selectedStudentId && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={(e) => {
+                const student = managedStudents.find(s => s.uid === selectedStudentId);
+                if (student) handleDeleteClick(e as any, student.uid, student.displayName);
+              }}
+              className="rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 font-bold gap-2"
+            >
+              <Trash2 className="h-4 w-4" /> Remove Selected Student
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Dialog */}
