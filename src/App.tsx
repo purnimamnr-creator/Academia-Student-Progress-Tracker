@@ -53,6 +53,15 @@ export default function App() {
     e.preventDefault();
     setAuthLoading(true);
     console.log("Starting authentication session...");
+    
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address.');
+      setAuthLoading(false);
+      return;
+    }
+
     try {
       if (isSigningUp) {
         if (!name) throw new Error('Name is required');
@@ -87,6 +96,12 @@ export default function App() {
           </div>,
           { duration: 10000 }
         );
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('The email address is badly formatted. Please check for typos.');
+      } else if (error.code === 'auth/invalid-credential') {
+        toast.error('Invalid email or password. If you haven\'t created an account yet, please use the Sign Up tab.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        toast.error('This email is already registered. Please login instead of signing up.');
       } else {
         toast.error(error.message || 'Authentication failed');
       }
