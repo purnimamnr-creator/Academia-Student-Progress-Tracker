@@ -13,7 +13,8 @@
         "lastActiveDate": { "type": "string" },
         "role": { "type": "string", "enum": ["teacher", "student"] },
         "studentIds": { "type": "array", "items": { "type": "string" } },
-        "standard": { "type": "string" }
+        "standard": { "type": "string" },
+        "teacherUid": { "type": "string" }
       },
       "required": ["uid", "email", "role"]
     },
@@ -29,9 +30,10 @@
         "maxScore": { "type": "number" },
         "type": { "type": "string", "enum": ["test", "assignment", "exam"] },
         "notes": { "type": "string" },
-        "uid": { "type": "string" }
+        "uid": { "type": "string" },
+        "studentId": { "type": "string" }
       },
-      "required": ["subject", "date", "score", "maxScore", "uid"]
+      "required": ["subject", "date", "score", "maxScore", "uid", "studentId"]
     },
     "Merit": {
       "title": "Merit",
@@ -43,9 +45,10 @@
         "date": { "type": "string" },
         "description": { "type": "string" },
         "category": { "type": "string", "enum": ["academic", "behavior", "extracurricular"] },
-        "uid": { "type": "string" }
+        "uid": { "type": "string" },
+        "studentId": { "type": "string" }
       },
-      "required": ["title", "date", "uid"]
+      "required": ["title", "date", "uid", "studentId"]
     },
     "AcademicGoal": {
       "title": "Academic Goal",
@@ -59,9 +62,10 @@
         "targetValue": { "type": "number" },
         "unit": { "type": "string" },
         "status": { "type": "string", "enum": ["in-progress", "completed", "failed"] },
-        "uid": { "type": "string" }
+        "uid": { "type": "string" },
+        "studentId": { "type": "string" }
       },
-      "required": ["title", "targetDate", "targetValue", "uid"]
+      "required": ["title", "targetDate", "targetValue", "uid", "studentId"]
     },
     "StudySession": {
       "title": "Study Session",
@@ -74,9 +78,10 @@
         "end": { "type": "string" },
         "subject": { "type": "string" },
         "reminderSet": { "type": "boolean" },
-        "uid": { "type": "string" }
+        "uid": { "type": "string" },
+        "studentId": { "type": "string" }
       },
-      "required": ["title", "start", "end", "uid"]
+      "required": ["title", "start", "end", "uid", "studentId"]
     }
   },
   "firestore": {

@@ -294,10 +294,16 @@ export default function App() {
                 <User className="h-4 w-4 text-white" />
               </Button>
             } />
-            <PopoverContent className="w-56 p-2 rounded-[24px] mr-4" align="end">
+            <PopoverContent className="w-64 p-2 rounded-[24px] mr-4" align="end">
               <div className="p-3 border-b border-slate-100 mb-2">
                 <p className="font-extrabold text-text-dark text-sm">{profile?.displayName}</p>
                 <p className="text-[10px] text-text-light font-bold uppercase tracking-wider">Teacher</p>
+                <div className="mt-2 pt-2 border-t border-slate-50">
+                  <p className="text-[10px] text-text-light font-bold">USER ID (for manual database sync):</p>
+                  <code className="text-[9px] bg-slate-100 p-1 block rounded mt-1 break-all cursor-help" title="Copy this ID to the 'teacherUid' field in Firestore Console to link manual data.">
+                    {user?.uid}
+                  </code>
+                </div>
               </div>
               <div className="space-y-1">
                 <button 
@@ -358,7 +364,12 @@ export default function App() {
             <div className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-bold text-sm">
               🔥 {profile?.streak} Day Streak
             </div>
-            <div className="font-bold text-sm text-text-dark">{profile?.displayName}</div>
+            <div className="flex flex-col items-end">
+              <div className="font-bold text-sm text-text-dark">{profile?.displayName}</div>
+              <div className="text-[9px] text-text-light font-mono truncate max-w-[120px]" title={`User ID: ${user?.uid}`}>
+                ID: {user?.uid}
+              </div>
+            </div>
             <div className="w-8 h-8 rounded-full bg-accent-3"></div>
           </div>
         </div>
