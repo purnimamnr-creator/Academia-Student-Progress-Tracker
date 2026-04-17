@@ -66,14 +66,27 @@ export default function App() {
       }
     } catch (error: any) {
       console.error("Auth error:", error);
+      const projectId = "gen-lang-client-0471121664";
+      const consoleUrl = `https://console.firebase.google.com/project/${projectId}/authentication/settings`;
+      
       if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domain not authorized. Please add this Netlify domain to your Firebase Console authorized domains.', {
-          duration: 6000
-        });
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <p className="font-bold">Domain not authorized!</p>
+            <p className="text-xs">Your Netlify URL must be added to the Authorized Domains list in your Firebase project: <strong>{projectId}</strong></p>
+            <a href={consoleUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-bold text-xs mt-1">Open Firebase Settings</a>
+          </div>,
+          { duration: 10000 }
+        );
       } else if (error.code === 'auth/operation-not-allowed') {
-        toast.error('Email/Password login is not enabled in your Firebase Console.', {
-          duration: 6000
-        });
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <p className="font-bold">Email/Password Disabled!</p>
+            <p className="text-xs">Go to Firebase Console &gt; Authentication &gt; Sign-in method and enable **Email/Password**. Project: <strong>{projectId}</strong></p>
+            <a href={`https://console.firebase.google.com/project/${projectId}/authentication/providers`} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-bold text-xs mt-1">Enable Email/Password</a>
+          </div>,
+          { duration: 10000 }
+        );
       } else {
         toast.error(error.message || 'Authentication failed');
       }
@@ -90,10 +103,18 @@ export default function App() {
       toast.success('Welcome back!');
     } catch (error: any) {
       console.error("Google Auth error:", error);
+      const projectId = "gen-lang-client-0471121664";
+      const consoleUrl = `https://console.firebase.google.com/project/${projectId}/authentication/settings`;
+
       if (error.code === 'auth/unauthorized-domain') {
-          toast.error('Domain not authorized. Please add this Netlify domain to your Firebase Console authorized domains.', {
-            duration: 6000
-          });
+          toast.error(
+            <div className="flex flex-col gap-2">
+              <p className="font-bold">Domain not authorized!</p>
+              <p className="text-xs">Your Netlify URL must be added to the Authorized Domains list in your Firebase project: <strong>{projectId}</strong></p>
+              <a href={consoleUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline font-bold text-xs mt-1">Open Firebase Settings</a>
+            </div>,
+            { duration: 10000 }
+          );
       } else {
         toast.error(error.message || 'Google Sign-In failed');
       }
