@@ -52,12 +52,15 @@ export default function App() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
+    console.log("Starting authentication session...");
     try {
       if (isSigningUp) {
         if (!name) throw new Error('Name is required');
+        console.log("Attempting sign up for:", email);
         await signUp(email, password, name);
         toast.success('Account created successfully!');
       } else {
+        console.log("Attempting sign in for:", email);
         await signIn(email, password);
         toast.success('Welcome back!');
       }
@@ -81,6 +84,7 @@ export default function App() {
 
   const handleGoogleSignIn = async () => {
     setAuthLoading(true);
+    console.log("Attempting Google Sign-In...");
     try {
       await signInWithGoogle();
       toast.success('Welcome back!');
@@ -112,6 +116,7 @@ export default function App() {
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <Toaster position="bottom-right" />
         <Card className="max-w-md w-full border-none shadow-2xl bg-white/80 backdrop-blur-sm p-2">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
@@ -234,8 +239,10 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col md:flex-row">
-      {/* Mobile Header */}
+    <>
+      <Toaster position="bottom-right" />
+      <div className="min-h-screen bg-bg flex flex-col md:flex-row">
+        {/* Mobile Header */}
       <header className="md:hidden bg-card border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="text-xl font-extrabold text-primary flex items-center gap-2">
           <GraduationCap className="h-6 w-6" /> ScholarFlow
@@ -398,8 +405,7 @@ export default function App() {
           <span className="text-[10px] font-bold">AI</span>
         </button>
       </nav>
-
-      <Toaster position="bottom-right" />
     </div>
+    </>
   );
 }
