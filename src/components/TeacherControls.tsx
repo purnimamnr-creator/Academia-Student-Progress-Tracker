@@ -28,12 +28,17 @@ export function TeacherControls() {
     
     try {
       await addStudent(user.uid, studentName, newStudentStandard);
-      refreshData();
       setStudentName('');
       setIsAddOpen(false);
       toast.success('Student added successfully!');
-    } catch (error) {
-      toast.error('Failed to add student.');
+    } catch (error: any) {
+      console.error("Add student error:", error);
+      let message = 'Failed to add student details.';
+      try {
+        const parsed = JSON.parse(error.message);
+        if (parsed.error) message = parsed.error;
+      } catch (e) {}
+      toast.error(message);
     }
   };
 
