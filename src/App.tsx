@@ -22,7 +22,8 @@ import {
   User,
   Mail,
   Lock,
-  UserPlus
+  UserPlus,
+  Trash2
 } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -373,6 +374,21 @@ export default function App() {
             <div className="w-8 h-8 rounded-full bg-accent-3"></div>
           </div>
         </div>
+
+        {selectedStudent && (
+          <div className="bg-rose-50 border border-rose-100 p-4 rounded-3xl flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <div className="bg-rose-500 text-white p-2 rounded-xl">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-rose-700">Student Account Management</p>
+                <p className="text-xs text-rose-600 font-medium whitespace-nowrap">Perform administrative actions for {selectedStudent.displayName}</p>
+              </div>
+            </div>
+            <TeacherControls isDeleteMode={true} />
+          </div>
+        )}
 
         <div className="md:hidden">
           <h1 className="text-2xl font-extrabold text-text-dark">Hello, {displayName?.split(' ')[0]}! 👋</h1>

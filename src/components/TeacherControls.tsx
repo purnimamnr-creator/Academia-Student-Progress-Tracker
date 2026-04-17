@@ -15,7 +15,7 @@ const STANDARDS = [
   "9th Standard", "10th Standard"
 ];
 
-export function TeacherControls() {
+export function TeacherControls({ isDeleteMode }: { isDeleteMode?: boolean }) {
   const { user, profile, managedStudents, selectedStudentId, setSelectedStudentId, refreshData } = useAuth();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [studentName, setStudentName] = useState('');
@@ -23,6 +23,75 @@ export function TeacherControls() {
   const [filterStandard, setFilterStandard] = useState<string | 'all'>('all');
 
   const [studentToDelete, setStudentToDelete] = useState<{id: string, name: string} | null>(null);
+
+  const selectedStudent = useMemo(() => managedStudents.find(s => s.uid === selectedStudentId), [managedStudents, selectedStudentId]);
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+    
+    try {
+      await deleteStudent(studentToDelete.id);
+      if (selectedStudentId === studentToDelete.id) setSelectedStudentId(null);
+      toast.success(`${studentToDelete.name} removed from classroom.`);
+      setStudentToDelete(null);
+    } catch (error: any) {
+      console.error("Delete student error:", error);
+      toast.error('Failed to delete student.');
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, studentUid: string, name: string) => {
+    e.stopPropagation(); 
+    setStudentToDelete({ id: studentUid, name: name });
+  };
+
+  if (isDeleteMode) {
+    return (
+      <>
+        <Button 
+          variant="destructive" 
+          size="sm"
+          onClick={(e) => {
+            if (selectedStudent) handleDeleteClick(e as any, selectedStudent.uid, selectedStudent.displayName);
+          }}
+          className="rounded-xl font-bold bg-rose-500 hover:bg-rose-600 px-6 h-10 shadow-sm"
+        >
+          <Trash2 className="h-4 w-4 mr-2" /> Delete This Student
+        </Button>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+          <DialogContent className="rounded-[24px] sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-extrabold text-rose-600 flex items-center gap-2">
+                <Trash2 className="h-5 w-5" /> Confirm Deletion
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4 font-medium text-text-dark">
+              Are you sure you want to remove <span className="font-extrabold text-primary">{studentToDelete?.name}</span>? 
+              This will permanently delete their profile from your classroom record.
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setStudentToDelete(null)}
+                className="flex-1 rounded-xl font-bold h-12"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDelete}
+                className="flex-1 rounded-xl font-bold h-12 bg-rose-500 hover:bg-rose-600 text-white"
+              >
+                Delete Student
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,25 +111,6 @@ export function TeacherControls() {
       } catch (e) {}
       toast.error(message);
     }
-  };
-
-  const confirmDelete = async () => {
-    if (!studentToDelete) return;
-    
-    try {
-      await deleteStudent(studentToDelete.id);
-      if (selectedStudentId === studentToDelete.id) setSelectedStudentId(null);
-      toast.success(`${studentToDelete.name} removed from classroom.`);
-      setStudentToDelete(null);
-    } catch (error: any) {
-      console.error("Delete student error:", error);
-      toast.error('Failed to delete student.');
-    }
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent, studentUid: string, name: string) => {
-    e.stopPropagation(); 
-    setStudentToDelete({ id: studentUid, name: name });
   };
 
   const filteredStudents = useMemo(() => {
@@ -178,7 +228,7 @@ export function TeacherControls() {
                 >
                   <button 
                     onClick={(e) => handleDeleteClick(e, student.uid, student.displayName)}
-                    className="absolute -top-2 -right-2 bg-rose-500 text-white p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-rose-600 shadow-lg z-10 scale-110 md:scale-100"
+                    className="absolute -top-2 -right-2 bg-rose-500 text-white p-2 rounded-full opacity-100 transition-opacity hover:bg-rose-600 shadow-lg z-10 scale-110"
                     title="Remove Student"
                   >
                     <Trash2 className="h-4 w-4" />
