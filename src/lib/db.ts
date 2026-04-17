@@ -147,3 +147,12 @@ export const addStudent = async (teacherUid: string, studentName: string, standa
     return '';
   }
 };
+
+export const deleteStudent = async (studentUid: string) => {
+  const path = `users/${studentUid}`;
+  try {
+    await deleteDoc(doc(db, 'users', studentUid));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+};

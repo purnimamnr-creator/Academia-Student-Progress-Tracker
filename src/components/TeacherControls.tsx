@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import { addStudent } from '../lib/db';
+import { addStudent, deleteStudent } from '../lib/db';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Users, Plus, UserCircle, Filter, BookOpen } from 'lucide-react';
+import { Users, Plus, UserCircle, Filter, BookOpen, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STANDARDS = [
@@ -21,6 +21,8 @@ export function TeacherControls() {
   const [studentName, setStudentName] = useState('');
   const [newStudentStandard, setNewStudentStandard] = useState(STANDARDS[0]);
   const [filterStandard, setFilterStandard] = useState<string | 'all'>('all');
+
+  const [studentToDelete, setStudentToDelete] = useState<{id: string, name: string} | null>(null);
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,25 @@ export function TeacherControls() {
       } catch (e) {}
       toast.error(message);
     }
+  };
+
+  const confirmDelete = async () => {
+    if (!studentToDelete) return;
+    
+    try {
+      await deleteStudent(studentToDelete.id);
+      if (selectedStudentId === studentToDelete.id) setSelectedStudentId(null);
+      toast.success(`${studentToDelete.name} removed from classroom.`);
+      setStudentToDelete(null);
+    } catch (error: any) {
+      console.error("Delete student error:", error);
+      toast.error('Failed to delete student.');
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, studentUid: string, name: string) => {
+    e.stopPropagation(); 
+    setStudentToDelete({ id: studentUid, name: name });
   };
 
   const filteredStudents = useMemo(() => {
@@ -138,15 +159,30 @@ export function TeacherControls() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {filteredStudents.length > 0 ? (
               filteredStudents.map(student => (
-                <button
+                <div
                   key={student.uid}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedStudentId(student.uid)}
-                  className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-all text-center gap-2 ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedStudentId(student.uid);
+                    }
+                  }}
+                  className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-all text-center gap-2 relative group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     selectedStudentId === student.uid 
                       ? 'border-primary bg-primary/5 shadow-md scale-105' 
                       : 'border-slate-100 bg-white hover:border-primary/30 hover:bg-slate-50'
                   }`}
                 >
+                  <button 
+                    onClick={(e) => handleDeleteClick(e, student.uid, student.displayName)}
+                    className="absolute -top-2 -right-2 bg-rose-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 shadow-sm z-10"
+                    title="Remove Student"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     selectedStudentId === student.uid ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'
                   }`}>
@@ -162,7 +198,7 @@ export function TeacherControls() {
                       {student.standard}
                     </p>
                   </div>
-                </button>
+                </div>
               ))
             ) : (
               <div className="col-span-full py-8 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
@@ -172,6 +208,37 @@ export function TeacherControls() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+        <DialogContent className="rounded-[24px] sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-extrabold text-rose-600 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" /> Confirm Deletion
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 font-medium text-text-dark">
+            Are you sure you want to remove <span className="font-extrabold text-primary">{studentToDelete?.name}</span>? 
+            This will permanently delete their profile from your classroom record.
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setStudentToDelete(null)}
+              className="flex-1 rounded-xl font-bold h-12"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              className="flex-1 rounded-xl font-bold h-12 bg-rose-500 hover:bg-rose-600 text-white"
+            >
+              Delete Student
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

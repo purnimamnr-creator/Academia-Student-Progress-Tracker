@@ -64,7 +64,9 @@ service cloud.firestore {
                         resource.data.teacherUid == request.auth.uid
                       ) && isValidUserProfile(request.resource.data)) || isAdmin();
 
-      allow delete: if isUserSelf(userId) || isAdmin();
+      allow delete: if isUserSelf(userId) || 
+                      (resource != null && resource.data.teacherUid == request.auth.uid) || 
+                      isAdmin();
     }
 
     // Scores: Only the owner can access their own scores
