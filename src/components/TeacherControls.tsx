@@ -83,26 +83,12 @@ export function TeacherControls() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedStudentId && (
-            <Button 
-              variant="destructive" 
-              onClick={(e) => {
-                const student = managedStudents.find(s => s.uid === selectedStudentId);
-                if (student) handleDeleteClick(e as any, student.uid, student.displayName);
-              }}
-              className="rounded-xl bg-rose-500 hover:bg-rose-600 h-11 px-6 shadow-md shadow-rose-200 transition-all font-bold animate-in fade-in zoom-in"
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Remove {managedStudents.find(s => s.uid === selectedStudentId)?.displayName}
+        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <DialogTrigger render={
+            <Button className="rounded-xl bg-primary hover:bg-primary/90 h-11 px-6 shadow-md transition-all hover:scale-105">
+              <Plus className="h-4 w-4 mr-2" /> Add New Student
             </Button>
-          )}
-
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger render={
-              <Button className="rounded-xl bg-primary hover:bg-primary/90 h-11 px-6 shadow-md transition-all hover:scale-105">
-                <Plus className="h-4 w-4 mr-2" /> Add New Student
-              </Button>
-            } />
+          } />
           <DialogContent className="rounded-[24px] sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="text-xl font-extrabold">Register Student</DialogTitle>
@@ -134,7 +120,6 @@ export function TeacherControls() {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
 
       <div className="pt-4 border-t border-slate-100">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
@@ -193,6 +178,13 @@ export function TeacherControls() {
                       : 'border-slate-100 bg-white hover:border-primary/30 hover:bg-slate-50'
                   }`}
                 >
+                  <button 
+                    onClick={(e) => handleDeleteClick(e, student.uid, student.displayName)}
+                    className="absolute -top-2 -right-2 bg-rose-500 text-white p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-rose-600 shadow-lg z-20"
+                    title="Remove Student"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                     selectedStudentId === student.uid ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'
                   }`}>
