@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export function ScoresList() {
-  const { scores, selectedStudentId } = useAuth();
+  const { user, scores, selectedStudentId, refreshData } = useAuth();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newScore, setNewScore] = useState({
     subject: '',
@@ -28,10 +28,10 @@ export function ScoresList() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId) return;
+    if (!selectedStudentId || !user) return;
     
     try {
-      await addScore(selectedStudentId, {
+      await addScore(user.uid, selectedStudentId, {
         subject: newScore.subject,
         score: Number(newScore.score),
         maxScore: Number(newScore.maxScore),
@@ -39,6 +39,7 @@ export function ScoresList() {
         type: newScore.type,
         notes: newScore.notes
       });
+      refreshData();
       setIsAddOpen(false);
       setNewScore({
         subject: '',
@@ -57,6 +58,7 @@ export function ScoresList() {
   const handleDelete = async (id: string) => {
     try {
       await deleteScore(id);
+      refreshData();
       toast.success('Score deleted.');
     } catch (error) {
       toast.error('Failed to delete.');

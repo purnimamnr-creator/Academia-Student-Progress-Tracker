@@ -16,7 +16,7 @@ const STANDARDS = [
 ];
 
 export function TeacherControls() {
-  const { user, profile, managedStudents, selectedStudentId, setSelectedStudentId } = useAuth();
+  const { user, profile, managedStudents, selectedStudentId, setSelectedStudentId, refreshData } = useAuth();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [studentName, setStudentName] = useState('');
   const [newStudentStandard, setNewStudentStandard] = useState(STANDARDS[0]);
@@ -28,6 +28,7 @@ export function TeacherControls() {
     
     try {
       await addStudent(user.uid, studentName, newStudentStandard);
+      refreshData();
       setStudentName('');
       setIsAddOpen(false);
       toast.success('Student added successfully!');

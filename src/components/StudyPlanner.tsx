@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export function StudyPlanner() {
-  const { sessions, selectedStudentId } = useAuth();
+  const { user, sessions, selectedStudentId, refreshData } = useAuth();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [newSession, setNewSession] = useState({
@@ -32,7 +32,7 @@ export function StudyPlanner() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId || !date) return;
+    if (!selectedStudentId || !date || !user) return;
     
     const start = new Date(date);
     const [sH, sM] = newSession.startTime.split(':');
@@ -43,13 +43,14 @@ export function StudyPlanner() {
     end.setHours(parseInt(eH), parseInt(eM));
 
     try {
-      await addSession(selectedStudentId, {
+      await addSession(user.uid, selectedStudentId, {
         title: newSession.title,
         subject: newSession.subject,
         start: start.toISOString(),
         end: end.toISOString(),
         reminderSet: newSession.reminderSet
       });
+      refreshData();
       setIsAddOpen(false);
       toast.success('Study session scheduled!');
     } catch (error) {
@@ -60,6 +61,7 @@ export function StudyPlanner() {
   const handleDelete = async (id: string) => {
     try {
       await deleteSession(id);
+      refreshData();
       toast.success('Session removed.');
     } catch (error) {
       toast.error('Failed to remove.');

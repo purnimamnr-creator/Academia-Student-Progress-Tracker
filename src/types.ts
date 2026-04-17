@@ -1,5 +1,7 @@
 export interface TestScore {
   id: string;
+  uid: string; // Teacher/Owner UID
+  studentId: string; // Student UID
   subject: string;
   date: string;
   score: number;
@@ -10,6 +12,8 @@ export interface TestScore {
 
 export interface Merit {
   id: string;
+  uid: string;
+  studentId: string;
   title: string;
   date: string;
   description: string;
@@ -18,6 +22,8 @@ export interface Merit {
 
 export interface AcademicGoal {
   id: string;
+  uid: string;
+  studentId: string;
   title: string;
   targetDate: string;
   currentValue: number;
@@ -28,6 +34,8 @@ export interface AcademicGoal {
 
 export interface StudySession {
   id: string;
+  uid: string;
+  studentId: string;
   title: string;
   start: string;
   end: string;

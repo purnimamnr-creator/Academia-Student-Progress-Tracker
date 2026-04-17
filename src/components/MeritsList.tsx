@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export function MeritsList() {
-  const { merits, selectedStudentId } = useAuth();
+  const { user, merits, selectedStudentId, refreshData } = useAuth();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newMerit, setNewMerit] = useState({
     title: '',
@@ -25,10 +25,11 @@ export function MeritsList() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId) return;
+    if (!selectedStudentId || !user) return;
     
     try {
-      await addMerit(selectedStudentId, newMerit);
+      await addMerit(user.uid, selectedStudentId, newMerit);
+      refreshData();
       setIsAddOpen(false);
       setNewMerit({
         title: '',

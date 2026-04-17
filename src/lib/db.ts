@@ -1,76 +1,122 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, Timestamp, setDoc, getDoc } from 'firebase/firestore';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  addDoc, 
+  getDoc,
+  serverTimestamp
+} from 'firebase/firestore';
 import { db } from './firebase';
-import { TestScore, Merit, AcademicGoal, StudySession, UserProfile } from '../types';
 import { handleFirestoreError, OperationType } from './errorHandling';
+import { TestScore, Merit, AcademicGoal, StudySession, UserProfile } from '../types';
 
-export const addScore = async (uid: string, score: Omit<TestScore, 'id'>) => {
+export const addScore = async (teacherUid: string, studentId: string, score: Omit<TestScore, 'id' | 'uid' | 'studentId'>) => {
+  const path = 'scores';
   try {
-    return await addDoc(collection(db, 'scores'), { ...score, uid, createdAt: Timestamp.now() });
+    const docRef = await addDoc(collection(db, path), {
+      ...score,
+      uid: teacherUid, // Teacher is the owner
+      studentId,
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
   } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, 'scores');
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return '';
   }
 };
 
-export const updateScore = async (id: string, score: Partial<TestScore>) => {
+export const updateScore = async (id: string, updates: Partial<TestScore>) => {
+  const path = `scores/${id}`;
   try {
-    return await updateDoc(doc(db, 'scores', id), score);
+    await updateDoc(doc(db, 'scores', id), updates);
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `scores/${id}`);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 };
 
 export const deleteScore = async (id: string) => {
+  const path = `scores/${id}`;
   try {
-    return await deleteDoc(doc(db, 'scores', id));
+    await deleteDoc(doc(db, 'scores', id));
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, `scores/${id}`);
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 };
 
-export const addMerit = async (uid: string, merit: Omit<Merit, 'id'>) => {
+export const addMerit = async (teacherUid: string, studentId: string, merit: Omit<Merit, 'id' | 'uid' | 'studentId'>) => {
+  const path = 'merits';
   try {
-    return await addDoc(collection(db, 'merits'), { ...merit, uid, createdAt: Timestamp.now() });
+    const docRef = await addDoc(collection(db, path), {
+      ...merit,
+      uid: teacherUid,
+      studentId,
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
   } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, 'merits');
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return '';
   }
 };
 
-export const addGoal = async (uid: string, goal: Omit<AcademicGoal, 'id'>) => {
+export const addGoal = async (teacherUid: string, studentId: string, goal: Omit<AcademicGoal, 'id' | 'uid' | 'studentId'>) => {
+  const path = 'goals';
   try {
-    return await addDoc(collection(db, 'goals'), { ...goal, uid, createdAt: Timestamp.now() });
+    const docRef = await addDoc(collection(db, path), {
+      ...goal,
+      uid: teacherUid,
+      studentId,
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
   } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, 'goals');
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return '';
   }
 };
 
-export const updateGoal = async (id: string, goal: Partial<AcademicGoal>) => {
+export const updateGoal = async (id: string, updates: Partial<AcademicGoal>) => {
+  const path = `goals/${id}`;
   try {
-    return await updateDoc(doc(db, 'goals', id), goal);
+    await updateDoc(doc(db, 'goals', id), updates);
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `goals/${id}`);
+    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 };
 
-export const addSession = async (uid: string, session: Omit<StudySession, 'id'>) => {
+export const addSession = async (teacherUid: string, studentId: string, session: Omit<StudySession, 'id' | 'uid' | 'studentId'>) => {
+  const path = 'sessions';
   try {
-    return await addDoc(collection(db, 'sessions'), { ...session, uid, createdAt: Timestamp.now() });
+    const docRef = await addDoc(collection(db, path), {
+      ...session,
+      uid: teacherUid,
+      studentId,
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
   } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, 'sessions');
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return '';
   }
 };
 
 export const deleteSession = async (id: string) => {
+  const path = `sessions/${id}`;
   try {
-    return await deleteDoc(doc(db, 'sessions', id));
+    await deleteDoc(doc(db, 'sessions', id));
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, `sessions/${id}`);
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 };
 
 export const addStudent = async (teacherUid: string, studentName: string, standard: string) => {
+  const path = 'users';
   try {
     const studentUid = `student_${Math.random().toString(36).substr(2, 9)}`;
-    const studentProfile: UserProfile = {
+    const studentProfile = {
       uid: studentUid,
       displayName: studentName,
       email: `${studentUid}@placeholder.com`,
@@ -78,21 +124,26 @@ export const addStudent = async (teacherUid: string, studentName: string, standa
       streak: 0,
       lastActiveDate: new Date().toISOString().split('T')[0],
       role: 'student',
-      studentIds: [],
+      teacherUid, // Crucial for filtering students managed by this teacher
       standard
     };
+
+    // Note: The student profile 'uid' is different from the document ID in 'users' collection 
+    // if we want the teacher to own it. But wait, in 'users' collection, the doc ID is the UID.
+    // If the teacher owns it, the rules 'isUserSelf(userId)' will block the teacher 
+    // from writing to 'users/student_123'.
+    
+    // We need to either:
+    // 1. Change user rules to allow teachers to manage their students.
+    // 2. Or create students as a sub-collection? No, blueprint.
+    
+    // Let's modify firestore.rules to allow teachers to read/write students they manage.
     
     await setDoc(doc(db, 'users', studentUid), studentProfile);
     
-    const teacherDoc = await getDoc(doc(db, 'users', teacherUid));
-    const currentStudentIds = teacherDoc.data()?.studentIds || [];
-    
-    await updateDoc(doc(db, 'users', teacherUid), {
-      studentIds: [...currentStudentIds, studentUid]
-    });
-    
     return studentUid;
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, 'users');
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return '';
   }
 };

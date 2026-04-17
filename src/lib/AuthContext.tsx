@@ -1,15 +1,34 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db } from './firebase';
-import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocFromServer, updateDoc } from 'firebase/firestore';
-import { UserProfile, TestScore, Merit, AcademicGoal, StudySession } from '../types';
+import { 
+  onAuthStateChanged, 
+  User, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
+} from 'firebase/auth';
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  doc, 
+  getDoc, 
+  setDoc 
+} from 'firebase/firestore';
+import { db, auth } from './firebase';
 import { handleFirestoreError, OperationType } from './errorHandling';
+import { UserProfile, TestScore, Merit, AcademicGoal, StudySession } from '../types';
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
-  signIn: () => Promise<void>;
+  signIn: (email: string, pass: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signUp: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   scores: TestScore[];
   merits: Merit[];
@@ -19,6 +38,8 @@ interface AuthContextType {
   selectedStudentId: string | null;
   setSelectedStudentId: (id: string | null) => void;
   isTeacher: boolean;
+  // Local storage refresh helpers
+  refreshData: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,101 +55,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [managedStudents, setManagedStudents] = useState<UserProfile[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
-  const isTeacher = true; // App is now teacher-centric
+  const isTeacher = profile?.role === 'teacher';
   const activeUid = selectedStudentId;
 
-  // Test connection on boot
   useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-        // Silent fail for connection test
-      }
+    if (!user) {
+      setProfile(null);
+      setManagedStudents([]);
+      setScores([]);
+      setMerits([]);
+      setGoals([]);
+      setSessions([]);
+      setLoading(false);
+      return;
     }
-    testConnection();
-  }, []);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        setUser(user);
-        if (user) {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          let currentProfile: UserProfile;
-          
-          if (!userDoc.exists()) {
-            currentProfile = {
-              uid: user.uid,
-              displayName: user.displayName || 'Student',
-              email: user.email || '',
-              dailyGoalMinutes: 60,
-              streak: 0,
-              lastActiveDate: new Date().toISOString().split('T')[0],
-              role: 'teacher', 
-              studentIds: []
-            };
-            await setDoc(doc(db, 'users', user.uid), currentProfile);
-            setProfile(currentProfile);
-          } else {
-            currentProfile = userDoc.data() as UserProfile;
-            if (currentProfile.role !== 'teacher') {
-              currentProfile.role = 'teacher';
-              await updateDoc(doc(db, 'users', user.uid), { role: 'teacher' });
-            }
-            setProfile(currentProfile);
-          }
-        } else {
-          setProfile(null);
-          setManagedStudents([]);
-          setSelectedStudentId(null);
-        }
-      } catch (error) {
-        // Silent fail for auth init
-      } finally {
-        setLoading(false);
+    // 1. Listen for User Profile
+    const unsubProfile = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
+      if (snapshot.exists()) {
+        const profileData = snapshot.data() as UserProfile;
+        setProfile(profileData);
+      } else {
+        // Create initial profile if missing
+        const newProfile: UserProfile = {
+          uid: user.uid,
+          displayName: user.displayName || 'Teacher',
+          email: user.email || '',
+          dailyGoalMinutes: 60,
+          streak: 0,
+          lastActiveDate: new Date().toISOString().split('T')[0],
+          role: 'teacher',
+          studentIds: []
+        };
+        setDoc(doc(db, 'users', user.uid), newProfile);
+        setProfile(newProfile);
       }
-    });
-
-    return unsubscribe;
-  }, []);
-
-  // Real-time profile listener
-  useEffect(() => {
-    if (!user) return;
-    
-    const unsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      if (snap.exists()) {
-        setProfile(snap.data() as UserProfile);
-      }
+      setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
     });
 
-    return unsub;
+    // 2. Listen for Managed Students (if teacher)
+    const qStudents = query(collection(db, 'users'), where('teacherUid', '==', user.uid));
+    const unsubStudents = onSnapshot(qStudents, (snapshot) => {
+      setManagedStudents(snapshot.docs.map(doc => ({ ...doc.data() as UserProfile, uid: doc.id })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'users');
+    });
+
+    return () => {
+      unsubProfile();
+      unsubStudents();
+    };
   }, [user]);
 
+  // 3. Listen for Student Data
   useEffect(() => {
-    if (!profile?.studentIds) {
-      setManagedStudents([]);
-      return;
-    }
-
-    const studentsUnsub = onSnapshot(
-      query(collection(db, 'users'), where('uid', 'in', profile.studentIds.length ? profile.studentIds : ['dummy'])), 
-      (snap) => {
-        setManagedStudents(snap.docs.map(d => d.data() as UserProfile));
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'users');
-      }
-    );
-
-    return () => studentsUnsub();
-  }, [profile?.studentIds]);
-
-  useEffect(() => {
-    if (!activeUid) {
+    if (!user || !activeUid) {
       setScores([]);
       setMerits([]);
       setGoals([]);
@@ -136,33 +119,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const scoresUnsub = onSnapshot(query(collection(db, 'scores'), where('uid', '==', activeUid)), (snap) => {
-      setScores(snap.docs.map(d => ({ id: d.id, ...d.data() } as TestScore)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'scores'));
+    const qScores = query(collection(db, 'scores'), where('studentId', '==', activeUid), where('uid', '==', user.uid));
+    const unsubScores = onSnapshot(qScores, (snapshot) => {
+      setScores(snapshot.docs.map(doc => ({ ...doc.data() as TestScore, id: doc.id })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'scores');
+    });
 
-    const meritsUnsub = onSnapshot(query(collection(db, 'merits'), where('uid', '==', activeUid)), (snap) => {
-      setMerits(snap.docs.map(d => ({ id: d.id, ...d.data() } as Merit)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'merits'));
+    const qMerits = query(collection(db, 'merits'), where('studentId', '==', activeUid), where('uid', '==', user.uid));
+    const unsubMerits = onSnapshot(qMerits, (snapshot) => {
+      setMerits(snapshot.docs.map(doc => ({ ...doc.data() as Merit, id: doc.id })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'merits');
+    });
 
-    const goalsUnsub = onSnapshot(query(collection(db, 'goals'), where('uid', '==', activeUid)), (snap) => {
-      setGoals(snap.docs.map(d => ({ id: d.id, ...d.data() } as AcademicGoal)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'goals'));
+    const qGoals = query(collection(db, 'goals'), where('studentId', '==', activeUid), where('uid', '==', user.uid));
+    const unsubGoals = onSnapshot(qGoals, (snapshot) => {
+      setGoals(snapshot.docs.map(doc => ({ ...doc.data() as AcademicGoal, id: doc.id })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'goals');
+    });
 
-    const sessionsUnsub = onSnapshot(query(collection(db, 'sessions'), where('uid', '==', activeUid)), (snap) => {
-      setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as StudySession)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'sessions'));
+    const qSessions = query(collection(db, 'sessions'), where('studentId', '==', activeUid), where('uid', '==', user.uid));
+    const unsubSessions = onSnapshot(qSessions, (snapshot) => {
+      setSessions(snapshot.docs.map(doc => ({ ...doc.data() as StudySession, id: doc.id })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'sessions');
+    });
 
     return () => {
-      scoresUnsub();
-      meritsUnsub();
-      goalsUnsub();
-      sessionsUnsub();
+      unsubScores();
+      unsubMerits();
+      unsubGoals();
+      unsubSessions();
     };
-  }, [activeUid]);
+  }, [user, activeUid]);
 
-  const signIn = async () => {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      if (!user) setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const refreshData = () => {
+    // Real-time listeners handle this now
+  };
+
+  const signIn = async (email: string, pass: string) => {
+    await signInWithEmailAndPassword(auth, email, pass);
+  };
+
+  const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
+  };
+
+  const signUp = async (email: string, pass: string, name: string) => {
+    const res = await createUserWithEmailAndPassword(auth, email, pass);
+    if (res.user) {
+      await updateProfile(res.user, { displayName: name });
+      const newProfile: UserProfile = {
+        uid: res.user.uid,
+        displayName: name,
+        email: email,
+        dailyGoalMinutes: 60,
+        streak: 0,
+        lastActiveDate: new Date().toISOString().split('T')[0],
+        role: 'teacher',
+        studentIds: []
+      };
+      // We set doc first, then the snapshot listener will pick it up
+      await setDoc(doc(db, 'users', res.user.uid), newProfile);
+      setProfile(newProfile);
+    }
   };
 
   const logout = async () => {
@@ -171,8 +203,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, profile, loading, signIn, logout, scores, merits, goals, sessions,
-      managedStudents, selectedStudentId, setSelectedStudentId, isTeacher
+      user, profile, loading, signIn, signInWithGoogle, signUp, logout, scores, merits, goals, sessions,
+      managedStudents, selectedStudentId, setSelectedStudentId, isTeacher,
+      refreshData
     }}>
       {children}
     </AuthContext.Provider>

@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export function GoalsList() {
-  const { goals, selectedStudentId } = useAuth();
+  const { user, goals, selectedStudentId, refreshData } = useAuth();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newGoal, setNewGoal] = useState({
     title: '',
@@ -26,10 +26,10 @@ export function GoalsList() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId) return;
+    if (!selectedStudentId || !user) return;
     
     try {
-      await addGoal(selectedStudentId, {
+      await addGoal(user.uid, selectedStudentId, {
         title: newGoal.title,
         targetValue: Number(newGoal.targetValue),
         currentValue: 0,
@@ -37,6 +37,7 @@ export function GoalsList() {
         targetDate: newGoal.targetDate,
         status: 'in-progress'
       });
+      refreshData();
       setIsAddOpen(false);
       setNewGoal({
         title: '',
@@ -53,6 +54,7 @@ export function GoalsList() {
   const handleComplete = async (id: string) => {
     try {
       await updateGoal(id, { status: 'completed', currentValue: 100 });
+      refreshData();
       toast.success('Goal achieved! Great job!');
     } catch (error) {
       toast.error('Failed to update goal.');

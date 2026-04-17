@@ -1,126 +1,68 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
     // ===============================================================
-    // Assumed Data Model
+    // Security Helpers
     // ===============================================================
-    //
-    // Collection: users
-    // Fields: uid, displayName, email, dailyGoalMinutes, streak, lastActiveDate
-    //
-    // Collection: scores
-    // Fields: id, subject, date, score, maxScore, type, notes, uid
-    //
-    // Collection: merits
-    // Fields: id, title, date, description, category, uid
-    //
-    // Collection: goals
-    // Fields: id, title, targetDate, currentValue, targetValue, unit, status, uid
-    //
-    // Collection: sessions
-    // Fields: id, title, start, end, subject, reminderSet, uid
-    //
-    // ===============================================================
-
-    // Helper Functions
+    
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
+    // Check if the user is the owner of the document (by URL parameter)
+    function isUserSelf(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isTeacher() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    // Check if the user owns the data via the 'uid' field in the document
+    function isOwner() {
+      return isAuthenticated() && (
+        (resource == null && request.resource.data.uid == request.auth.uid) || 
+        (resource != null && resource.data.uid == request.auth.uid)
+      );
     }
 
-    function isTeacherOf(studentId) {
-      return isTeacher() && studentId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.studentIds;
-    }
-
-    function isDocOwner() {
-      return isAuthenticated() && request.auth.uid == resource.data.uid;
-    }
-
-    function isDocTeacherOf() {
-      return isTeacherOf(resource.data.uid);
-    }
-
-    function isRequestOwner() {
-      return isAuthenticated() && request.auth.uid == request.resource.data.uid;
-    }
-
-    function isRequestTeacherOf() {
-      return isTeacherOf(request.resource.data.uid);
-    }
-
-    // Domain Validators
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'email', 'role']) &&
-             data.uid is string &&
-             data.email is string &&
-             data.role in ['teacher', 'student'];
-    }
-
-    function isValidScore(data) {
-      return data.keys().hasAll(['subject', 'date', 'score', 'maxScore', 'uid']) &&
-             data.subject is string && data.subject.size() < 100 &&
-             data.score is number && data.maxScore is number &&
-             (data.uid == request.auth.uid || isTeacherOf(data.uid));
-    }
-
-    function isValidMerit(data) {
-      return data.keys().hasAll(['title', 'date', 'uid']) &&
-             data.title is string && data.title.size() < 200 &&
-             (data.uid == request.auth.uid || isTeacherOf(data.uid));
-    }
-
-    function isValidGoal(data) {
-      return data.keys().hasAll(['title', 'targetDate', 'targetValue', 'uid']) &&
-             data.title is string && data.title.size() < 200 &&
-             (data.uid == request.auth.uid || isTeacherOf(data.uid));
-    }
-
-    function isValidSession(data) {
-      return data.keys().hasAll(['title', 'start', 'end', 'uid']) &&
-             data.title is string && data.title.size() < 200 &&
-             (data.uid == request.auth.uid || isTeacherOf(data.uid));
-    }
-
+    // ===============================================================
     // Rules
+    // ===============================================================
+
+    // User profiles: Each user can only read and write their own data
+    // or teachers can manage students they are assigned to
     match /users/{userId} {
-      allow read: if isOwner(userId) || isTeacherOf(userId) || isTeacher();
-      allow create: if isOwner(userId) || isTeacher();
-      allow update: if (isOwner(userId) || isTeacher()) && isValidUser(request.resource.data);
+      allow get: if isUserSelf(userId) || (isAuthenticated() && resource.data.teacherUid == request.auth.uid);
+      
+      allow list: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        resource.data.teacherUid == request.auth.uid
+      );
+      
+      allow create: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        request.resource.data.teacherUid == request.auth.uid
+      );
+      
+      allow update, delete: if isUserSelf(userId) || (isAuthenticated() && resource.data.teacherUid == request.auth.uid);
     }
 
-    match /scores/{scoreId} {
-      allow read: if isDocOwner() || isDocTeacherOf();
-      allow create: if isRequestOwner() || isRequestTeacherOf();
-      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
-      allow delete: if isDocOwner() || isDocTeacherOf();
+    // Scores: Only the owner can access their own scores
+    match /scores/{id} {
+      allow read, write: if isOwner();
     }
 
-    match /merits/{meritId} {
-      allow read: if isDocOwner() || isDocTeacherOf();
-      allow create: if isRequestOwner() || isRequestTeacherOf();
-      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
-      allow delete: if isDocOwner() || isDocTeacherOf();
+    // Merits: Only the owner can access their own merits
+    match /merits/{id} {
+      allow read, write: if isOwner();
     }
 
-    match /goals/{goalId} {
-      allow read: if isDocOwner() || isDocTeacherOf();
-      allow create: if isRequestOwner() || isRequestTeacherOf();
-      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
-      allow delete: if isDocOwner() || isDocTeacherOf();
+    // Goals: Only the owner can access their own goals
+    match /goals/{id} {
+      allow read, write: if isOwner();
     }
 
-    match /sessions/{sessionId} {
-      allow read: if isDocOwner() || isDocTeacherOf();
-      allow create: if isRequestOwner() || isRequestTeacherOf();
-      allow update: if (isDocOwner() || isDocTeacherOf()) && (isRequestOwner() || isRequestTeacherOf());
-      allow delete: if isDocOwner() || isDocTeacherOf();
+    // Sessions: Only the owner can access their own sessions
+    match /sessions/{id} {
+      allow read, write: if isOwner();
     }
   }
 }
