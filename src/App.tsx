@@ -297,7 +297,7 @@ export default function App() {
             <PopoverContent className="w-64 p-2 rounded-[24px] mr-4" align="end">
               <div className="p-3 border-b border-slate-100 mb-2">
                 <p className="font-extrabold text-text-dark text-sm">{profile?.displayName}</p>
-                <p className="text-[10px] text-text-light font-bold uppercase tracking-wider">Teacher</p>
+                <p className="text-[10px] text-text-light font-bold uppercase tracking-wider">Account Role: <span className="text-primary">{profile?.role}</span></p>
                 <div className="mt-2 pt-2 border-t border-slate-50">
                   <p className="text-[10px] text-text-light font-bold">USER ID (for manual database sync):</p>
                   <code className="text-[9px] bg-slate-100 p-1 block rounded mt-1 break-all cursor-help" title="Copy this ID to the 'teacherUid' field in Firestore Console to link manual data.">

@@ -201,8 +201,19 @@ export function TeacherControls() {
                 </div>
               ))
             ) : (
-              <div className="col-span-full py-8 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-100">
-                <p className="text-sm text-text-light font-medium">No students found in this class.</p>
+              <div className="col-span-full py-12 px-6 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center gap-4">
+                <div className="bg-slate-100 p-4 rounded-full">
+                  <Users className="h-8 w-8 text-slate-300" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-text-dark text-lg">Your Classroom is Empty</h4>
+                  <p className="text-sm text-text-light max-w-[300px] mt-1">
+                    Add your first student using the <strong>"Add New Student"</strong> button above. 
+                  </p>
+                  <p className="text-xs text-primary/70 font-bold mt-4 uppercase tracking-tighter italic">
+                    Note: Deletion options appear once a student is added.
+                  </p>
+                </div>
               </div>
             )}
           </div>
