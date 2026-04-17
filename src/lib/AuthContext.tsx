@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { handleFirestoreError, OperationType } from './errorHandling';
+import { toast } from 'sonner';
 import { UserProfile, TestScore, Merit, AcademicGoal, StudySession } from '../types';
 
 interface AuthContextType {
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         setDoc(doc(db, 'users', user.uid), newProfile).catch(e => {
           console.error("Failed to create profile:", e);
+          toast.error("Account logged in, but failed to create profile record in database. Please check your Firestore rules.");
         });
         setProfile(newProfile);
       }
@@ -219,8 +221,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         studentIds: []
       };
       // We set doc first, then the snapshot listener will pick it up
-      await setDoc(doc(db, 'users', res.user.uid), newProfile);
-      setProfile(newProfile);
+      try {
+        await setDoc(doc(db, 'users', res.user.uid), newProfile);
+        setProfile(newProfile);
+      } catch (e: any) {
+        console.error("Failed to create profile during signup:", e);
+        toast.error("Account created, but database profile setup failed: " + e.message);
+      }
     }
   };
 
