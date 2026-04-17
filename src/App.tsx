@@ -62,7 +62,18 @@ export default function App() {
         toast.success('Welcome back!');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
+      console.error("Auth error:", error);
+      if (error.code === 'auth/unauthorized-domain') {
+        toast.error('Domain not authorized. Please add this Netlify domain to your Firebase Console authorized domains.', {
+          duration: 6000
+        });
+      } else if (error.code === 'auth/operation-not-allowed') {
+        toast.error('Email/Password login is not enabled in your Firebase Console.', {
+          duration: 6000
+        });
+      } else {
+        toast.error(error.message || 'Authentication failed');
+      }
     } finally {
       setAuthLoading(false);
     }
@@ -74,7 +85,14 @@ export default function App() {
       await signInWithGoogle();
       toast.success('Welcome back!');
     } catch (error: any) {
-      toast.error(error.message || 'Google Sign-In failed');
+      console.error("Google Auth error:", error);
+      if (error.code === 'auth/unauthorized-domain') {
+          toast.error('Domain not authorized. Please add this Netlify domain to your Firebase Console authorized domains.', {
+            duration: 6000
+          });
+      } else {
+        toast.error(error.message || 'Google Sign-In failed');
+      }
     } finally {
       setAuthLoading(false);
     }
